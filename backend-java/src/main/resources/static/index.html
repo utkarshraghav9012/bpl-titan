@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BPL TITAN - ULTIMATE PREMIUM V6 PRO AI</title>
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#FFD700">
+
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+
+    <style>
+        :root {
+            --primary: #FFD700;
+            --primary-dark: #B8860B;
+            --bg-deep: #0A0D12;
+            --card-bg: #1C222D;
+            --border-glow: #2D3646;
+            --text-silver: #E2E8F0;
+            --danger-red: #FF4D4D;
+            --success-green: #00FF88;
+            --ai-blue: #00F0FF;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+
+        body, html {
+            min-height: 100vh; width: 100%;
+            background: var(--bg-deep); color: var(--text-silver);
+            -webkit-font-smoothing: antialiased; overflow-x: hidden;
+        }
+
+        /* ============ AUTH ============ */
+        #auth-screen {
+            position: fixed; inset: 0;
+            background: radial-gradient(circle at center, #1C222D 0%, #0A0D12 100%);
+            z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px;
+        }
+        .auth-card {
+            background: var(--card-bg); padding: clamp(24px, 5vw, 45px);
+            border-radius: 28px; width: 100%; max-width: 480px;
+            border: 1px solid var(--primary);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.8), 0 0 40px rgba(255,215,0,0.1);
+            text-align: center;
+        }
+        .auth-tabs { display: flex; background: #12171F; padding: 6px; border-radius: 14px; margin-bottom: 30px; border: 1px solid #222; }
+        .auth-tabs button { flex: 1; padding: 14px; border: none; background: transparent; color: #666; cursor: pointer; border-radius: 11px; font-weight: 800; transition: 0.4s; font-size: clamp(12px, 3vw, 15px); }
+        .auth-tabs button.active { background: var(--primary); color: #000; box-shadow: 0 4px 15px rgba(255,215,0,0.3); }
+        .form-unit { margin-bottom: 18px; text-align: left; }
+        .form-unit label { font-size: 11px; color: var(--primary); font-weight: 900; margin-left: 5px; text-transform: uppercase; letter-spacing: 1px; }
+        input, select {
+            width: 100%; padding: 14px 16px; margin-top: 6px;
+            border-radius: 14px; border: 1px solid var(--border-glow);
+            background: #12171F; color: white; outline: none;
+            font-size: clamp(13px, 3vw, 15px); transition: all 0.3s;
+        }
+        input:focus { border-color: var(--primary); box-shadow: 0 0 15px rgba(255,215,0,0.1); }
+        .btn-glow {
+            width: 100%; padding: 16px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border: none; border-radius: 14px; font-weight: 900; cursor: pointer;
+            font-size: clamp(13px, 3vw, 16px); color: #000; text-transform: uppercase;
+            letter-spacing: 2px; margin-top: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+        .backend-badge {
+            display: inline-block; background: #0d2137; border: 1px solid var(--ai-blue);
+            color: var(--ai-blue); font-size: 10px; font-weight: 900; padding: 4px 10px;
+            border-radius: 20px; margin-bottom: 16px; letter-spacing: 1px;
+        }
+
+        /* ============ APP ============ */
+        #app-container { display: none; flex-direction: column; min-height: 100vh; opacity: 0; transition: opacity 1.2s ease; }
+        #app-container.show { opacity: 1; }
+
+        /* ============ ADMIN HEADER ============ */
+        #admin-header {
+            background: #161B22; padding: 12px 16px; display: none;
+            flex-wrap: wrap; gap: 10px; border-bottom: 3px solid var(--primary);
+            z-index: 1000; box-shadow: 0 5px 20px rgba(0,0,0,0.5); align-items: center;
+        }
+        .admin-group { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .admin-group input, .admin-group select { margin: 0; padding: 8px 10px; font-size: 12px; border-radius: 10px; }
+        .admin-group button { border: none; padding: 8px 12px; border-radius: 10px; font-weight: 900; cursor: pointer; font-size: 12px; white-space: nowrap; }
+
+        /* ============ GRID ============ */
+        #viewport-grid {
+            flex: 1; display: grid; gap: 16px; padding: 16px; background: #080a0e;
+            grid-template-columns: 300px 1fr 360px; grid-template-rows: auto;
+            min-height: calc(100vh - 60px);
+        }
+        @media (max-width: 1024px) {
+            #viewport-grid { grid-template-columns: 1fr 1fr; grid-template-rows: auto auto; min-height: auto; }
+            #panel-teams { grid-column: 1; grid-row: 1; }
+            #panel-stage { grid-column: 2; grid-row: 1; }
+            #panel-chat  { grid-column: 1 / span 2; grid-row: 2; min-height: 400px; }
+        }
+        @media (max-width: 640px) {
+            body, html { overflow-x: hidden; overflow-y: auto; }
+            #viewport-grid { grid-template-columns: 1fr; grid-template-rows: none; padding: 0; gap: 0; min-height: auto; }
+            #panel-teams, #panel-stage, #panel-chat { grid-column: 1; display: none; border-radius: 0; border-left: none; border-right: none; }
+            #panel-teams.active-tab, #panel-stage.active-tab, #panel-chat.active-tab { display: flex; }
+            #mobile-tabs { display: flex; position: fixed; bottom: 0; left: 0; right: 0; background: #161B22; border-top: 2px solid var(--primary); z-index: 500; height: 56px; }
+            #mobile-tabs button { flex: 1; border: none; background: transparent; color: #666; font-size: 11px; font-weight: 900; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 6px; transition: color 0.2s; }
+            #mobile-tabs button.active { color: var(--primary); }
+            #mobile-tabs button span.icon { font-size: 18px; }
+            #timer-display { font-size: clamp(60px, 20vw, 100px) !important; }
+            #player-name-main { font-size: clamp(24px, 8vw, 44px) !important; }
+            #current-bid-value { font-size: clamp(32px, 10vw, 60px) !important; }
+            .bid-action-trigger { padding: 18px 40px !important; font-size: 18px !important; }
+            #admin-header { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 8px; }
+            .admin-group { flex-shrink: 0; }
+            #app-container { padding-bottom: 56px; }
+        }
+        #mobile-tabs { display: none; }
+
+        /* ============ PANELS ============ */
+        .premium-panel {
+            background: var(--card-bg); border-radius: 20px; border: 1px solid var(--border-glow);
+            display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .panel-title {
+            background: #252D3A; padding: 15px 20px; font-weight: 900; color: var(--primary);
+            font-size: 12px; letter-spacing: 2px; text-transform: uppercase;
+            border-bottom: 1px solid var(--border-glow);
+            display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;
+        }
+
+        /* ============ STAGE ============ */
+        #panel-stage { align-items: center; justify-content: center; text-align: center; position: relative; padding: 20px; }
+        #panel-stage .panel-title { position: absolute; top: 0; width: 100%; }
+        #stage-inner { margin-top: 50px; display: flex; flex-direction: column; align-items: center; width: 100%; }
+        #timer-display { font-size: clamp(60px, 8vw, 110px); font-weight: 900; color: var(--danger-red); font-family: 'Monaco', 'Courier New', monospace; text-shadow: 0 0 30px rgba(255,77,77,0.4); line-height: 1; }
+        #player-name-main { font-size: clamp(26px, 4vw, 52px); font-weight: 900; color: #fff; margin: 12px 0; letter-spacing: -1px; word-break: break-word; }
+        #current-bid-value { font-size: clamp(36px, 5vw, 72px); color: var(--success-green); font-weight: 900; text-shadow: 0 0 20px rgba(0,255,136,0.3); }
+        #bidder-info { font-size: clamp(13px, 2vw, 20px); color: #8B949E; font-weight: 700; text-transform: uppercase; margin-top: 8px; }
+        .bid-action-trigger { margin-top: 30px; padding: 22px 70px; font-size: clamp(16px, 3vw, 24px); border-radius: 80px; border: none; background: var(--primary); font-weight: 900; cursor: pointer; box-shadow: 0 15px 35px rgba(255,215,0,0.25); transition: 0.3s; color: #000; text-transform: uppercase; }
+        .bid-action-trigger:disabled { background: #333; color: #666; box-shadow: none; cursor: not-allowed; }
+        .bid-action-trigger:not(:disabled):hover { transform: scale(1.05); }
+
+        /* ============ TEAM LIST ============ */
+        #team-list-render { flex: 1; overflow-y: auto; }
+        .team-row { padding: 14px 18px; border-bottom: 1px solid #1a1f2a; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: background 0.2s; }
+        .team-row:hover { background: #252d3a; }
+        .team-name { font-weight: 900; font-size: 14px; }
+        .team-sub { font-size: 10px; color: #666; margin-top: 2px; }
+        .team-purse { color: var(--success-green); font-weight: 900; font-size: 14px; }
+
+        /* ============ CHAT ============ */
+        #chat-stream { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 14px; background: #0D1117; }
+        .message-bubble { padding: 14px 18px; border-radius: 18px; max-width: 88%; font-size: clamp(13px, 2vw, 15px); line-height: 1.6; }
+        .m-user { background: var(--primary); color: #000; align-self: flex-end; border-bottom-right-radius: 4px; }
+        .m-mahaguru { background: #1A3A5F; color: var(--ai-blue); align-self: flex-start; border: 1px solid var(--ai-blue); border-bottom-left-radius: 4px; }
+        .m-system { align-self: center; font-style: italic; color: #888; font-size: 12px; text-align: center; }
+        .chat-footer { padding: 14px; background: #1C222D; display: flex; gap: 10px; flex-shrink: 0; }
+        .chat-footer input { margin: 0; border-radius: 12px; padding: 12px 14px; font-size: 14px; }
+        .chat-footer button { background: var(--primary); border: none; padding: 0 18px; border-radius: 12px; font-weight: 900; color: #000; cursor: pointer; white-space: nowrap; }
+        .ai-typing { display: flex; gap: 5px; padding: 14px 18px; }
+        .ai-typing span { width: 8px; height: 8px; border-radius: 50%; background: var(--ai-blue); animation: bounce 1.2s infinite; }
+        .ai-typing span:nth-child(2) { animation-delay: 0.2s; }
+        .ai-typing span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-8px)} }
+
+        /* ============ SQUAD MODAL ============ */
+        #squad-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 10000; display: none; align-items: center; justify-content: center; padding: 20px; }
+        .squad-content { background: var(--card-bg); width: 100%; max-width: 600px; max-height: 85vh; padding: 30px; border-radius: 28px; border: 2px solid var(--primary); overflow-y: auto; }
+
+        /* ============ VOICE PANEL ============ */
+        #voice-panel { position: fixed; bottom: 70px; left: 15px; width: 320px; background: #1C222D; border-radius: 16px; border: 2px solid var(--primary); z-index: 9999; display: none; flex-direction: column; box-shadow: 0 10px 40px rgba(0,0,0,0.8); }
+        #voice-panel.active { display: flex; }
+        #voice-header { background: #252D3A; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; flex-shrink: 0; border-radius: 14px 14px 0 0; }
+        #voice-header span { color: var(--primary); font-weight: 900; font-size: 11px; letter-spacing: 1px; }
+        #voice-header button { background: none; border: none; color: #fff; cursor: pointer; font-size: 14px; padding: 2px 8px; }
+        #voice-body { padding: 14px; }
+        #voice-status { font-size: 12px; color: #8B949E; text-align: center; padding: 8px; background: #12171F; border-radius: 10px; margin-bottom: 12px; }
+        #voice-peers { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; min-height: 40px; }
+        .peer-badge { background: #12171F; border: 1px solid var(--border-glow); border-radius: 20px; padding: 6px 12px; font-size: 11px; font-weight: 900; display: flex; align-items: center; gap: 6px; }
+        .peer-badge.speaking { border-color: var(--success-green); color: var(--success-green); }
+        .peer-badge .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success-green); animation: pulse 1s infinite; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+        #voice-controls { display: flex; gap: 8px; }
+        #voice-controls button { flex: 1; padding: 10px; border: none; border-radius: 10px; font-weight: 900; font-size: 12px; cursor: pointer; transition: 0.2s; }
+        #btn-mute { background: #12171F; border: 1px solid #444; color: #fff; }
+        #btn-mute.muted { background: var(--danger-red); color: #fff; border-color: var(--danger-red); }
+        #btn-leave { background: var(--danger-red); color: #fff; }
+        #vol-indicator { display: flex; gap: 3px; align-items: flex-end; justify-content: center; height: 24px; margin: 8px 0; }
+        #vol-indicator span { width: 4px; background: var(--success-green); border-radius: 2px; transition: height 0.1s; }
+        @media (min-width: 641px) { #voice-panel { bottom: 20px; } }
+        @media (max-width: 640px) { #voice-panel { width: calc(100vw - 30px); } }
+    </style>
+</head>
+<body>
+
+<!-- AUTH SCREEN -->
+<div id="auth-screen">
+    <div class="auth-card">
+        <h1 style="color:var(--primary); font-size:clamp(22px,6vw,32px); font-weight:900;">BPL TITAN V6 PRO</h1>
+        <div class="backend-badge">☕ JAVA SPRING BOOT POWERED</div>
+        <p style="color:#8B949E; font-size:12px; margin-bottom:30px;">NEXT-GEN AUCTION SYSTEM</p>
+        <div class="auth-tabs">
+            <button id="tab-join" class="active" onclick="switchAuth('join')">JOIN ARENA</button>
+            <button id="tab-init" onclick="switchAuth('init')">CREATE LEAGUE</button>
+        </div>
+        <div id="join-section">
+            <div class="form-unit">
+                <label>League ID</label>
+                <input type="text" id="input-l-id" placeholder="Ex: BPL2026" oninput="liveFetchTeams()" autocomplete="off">
+            </div>
+            <div class="form-unit">
+                <label>Access Role</label>
+                <select id="input-l-role" onchange="checkAdminUI()">
+                    <option value="team">Team Representative</option>
+                    <option value="admin">Main Administrator</option>
+                </select>
+            </div>
+            <div id="team-selector-wrapper" class="form-unit">
+                <label>Select Your Franchise</label>
+                <select id="input-l-team"><option>Enter ID first...</option></select>
+            </div>
+            <div class="form-unit">
+                <label>Security Key</label>
+                <input type="password" id="input-l-pass" placeholder="••••••••">
+            </div>
+            <button class="btn-glow" onclick="attemptLogin()">INITIATE CONNECTION</button>
+        </div>
+        <div id="init-section" style="display:none;">
+            <div class="form-unit">
+                <label>New League ID</label>
+                <input type="text" id="create-i-id" autocomplete="off">
+            </div>
+            <div class="form-unit">
+                <label>Master Password</label>
+                <input type="password" id="create-i-pass">
+            </div>
+            <button class="btn-glow" onclick="createNewLeague()">CREATE SYSTEM</button>
+        </div>
+    </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app-container">
+    <div id="admin-header">
+        <div class="admin-group">
+            <input type="text" id="adm-team-n" style="width:120px;" placeholder="Team Name">
+            <button onclick="adminAddTeam()" style="background:var(--primary); color:#000;">ADD TEAM</button>
+        </div>
+        <div class="admin-group" style="background:#111; padding:6px 10px; border-radius:12px; border:1px dashed var(--primary);">
+            <select id="adm-trade-seller" onchange="syncTradeList()" style="width:100px;"></select>
+            <select id="adm-trade-player" style="width:110px;"><option value="">Player</option></select>
+            <span style="color:var(--primary); font-weight:900;">➔</span>
+            <select id="adm-trade-buyer" style="width:100px;"></select>
+            <input type="number" id="adm-trade-price" placeholder="₹ Val" style="width:75px;">
+            <button onclick="adminExecuteTrade()" style="background:var(--primary); color:#000;">TRADE</button>
+        </div>
+        <div class="admin-group">
+            <input type="text" id="adm-player-n" style="width:150px;" placeholder="Player Name">
+            <button onclick="adminStartPlayer()" style="background:var(--success-green); color:#000;">START</button>
+            <button onclick="adminFinish('sold')" style="background:var(--ai-blue); color:#000;">SOLD</button>
+            <button onclick="adminFinish('unsold')" style="background:var(--danger-red); color:#fff;">UNSOLD</button>
+        </div>
+        <div class="admin-group">
+            <select id="adm-modify-team-list" style="width:120px;"></select>
+            <input type="number" id="adm-modify-purse-val" style="width:90px;" placeholder="New Purse">
+            <button onclick="adminUpdatePurse()" style="background:#fff; color:#000;">SET PURSE</button>
+        </div>
+        <button onclick="adminCompleteAuction()" style="background:var(--danger-red); color:white; border:none; padding:8px 14px; border-radius:10px; font-weight:900; margin-left:auto; white-space:nowrap;">⏹ STOP</button>
+    </div>
+
+    <div id="viewport-grid">
+        <div class="premium-panel active-tab" id="panel-teams">
+            <div class="panel-title">
+                FRANCHISES
+                <button onclick="initVoiceSystem()" id="voice-trigger-btn"
+                    style="background:var(--primary); border:none; padding:6px 10px; border-radius:8px; font-size:11px; font-weight:900; cursor:pointer; color:#000;">
+                    🎙 JOIN MIC
+                </button>
+            </div>
+            <div id="team-list-render"></div>
+        </div>
+        <div class="premium-panel stage-area active-tab" id="panel-stage">
+            <div class="panel-title">LIVE BROADCAST</div>
+            <div id="stage-inner">
+                <div id="timer-display">15</div>
+                <h2 id="player-name-main">READY</h2>
+                <div id="current-bid-value">₹0.00 Cr</div>
+                <div id="bidder-info">Awaiting Call</div>
+                <button class="bid-action-trigger" id="master-bid-btn" onclick="executeBid()" disabled>PLACE BID</button>
+            </div>
+        </div>
+        <div class="premium-panel active-tab" id="panel-chat">
+            <div class="panel-title">
+                MAHAGURU AI
+                <span style="color:var(--ai-blue); font-size:10px;">@claude · Java Backend</span>
+            </div>
+            <div id="chat-stream"></div>
+            <div class="chat-footer">
+                <input type="text" id="chat-input-field" placeholder="Tag @claude for AI..." onkeydown="if(event.key==='Enter') dispatchChat()">
+                <button onclick="dispatchChat()">SEND</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="mobile-tabs">
+        <button class="active" onclick="switchTab('panel-teams', this)"><span class="icon">🏏</span>Teams</button>
+        <button onclick="switchTab('panel-stage', this)"><span class="icon">⚡</span>Stage</button>
+        <button onclick="switchTab('panel-chat', this)"><span class="icon">🤖</span>AI Chat</button>
+    </div>
+</div>
+
+<!-- Squad Modal -->
+<div id="squad-modal" onclick="this.style.display='none'">
+    <div class="squad-content" onclick="event.stopPropagation()">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h2 id="modal-team-name" style="color:var(--primary);">Squad</h2>
+            <button onclick="document.getElementById('squad-modal').style.display='none'"
+                style="background:none; border:1px solid #444; color:#fff; padding:6px 14px; border-radius:8px; cursor:pointer;">✕ Close</button>
+        </div>
+        <div id="modal-player-list"></div>
+    </div>
+</div>
+
+<!-- Voice Panel -->
+<div id="voice-panel">
+    <div id="voice-header">
+        <span>🎙 BPL VOICE ROOM</span>
+        <div style="display:flex;gap:6px;">
+            <button onclick="toggleMic()" id="mic-btn" title="Toggle Mic">🔇</button>
+            <button onclick="closeVoice()" title="Leave">✕</button>
+        </div>
+    </div>
+    <div id="voice-body">
+        <div id="voice-status">Connecting to voice room...</div>
+        <div id="vol-indicator">
+            <span style="height:4px"></span><span style="height:8px"></span>
+            <span style="height:12px"></span><span style="height:8px"></span>
+            <span style="height:4px"></span>
+        </div>
+        <div id="voice-peers"></div>
+        <div id="voice-controls">
+            <button id="btn-mute" onclick="toggleMic()">🎤 Mute</button>
+            <button id="btn-leave" onclick="closeVoice()">📵 Leave</button>
+        </div>
+    </div>
+</div>
+<div id="remote-audio-container" style="display:none;"></div>
+
+<script>
+/* =========================================
+   CONFIG — Java Backend API Base URL
+   ========================================= */
+const API_BASE = window.location.origin; // auto-detects Spring Boot server
+
+/* =========================================
+   FIREBASE INIT
+   ========================================= */
+const firebaseConfig = {
+    apiKey: "AIzaSyC9IwhU6SKApi6ads_FC_3WpD4E0r3k-dQ",
+    databaseURL: "https://ipl-auction-8b916-default-rtdb.firebaseio.com/",
+    projectId: "ipl-auction-8b916"
+};
+firebase.initializeApp(firebaseConfig);
+const rdb = firebase.database();
+
+let GLOBAL_LID = "", GLOBAL_MYNAME = "", GLOBAL_ROLE = "", DB_REF = null;
+let TEAMS_CACHE = {}, CHAT_HISTORY = [], LAST_SYNC = Date.now();
+
+/* =========================================
+   AUTH
+   ========================================= */
+function switchAuth(m) {
+    document.getElementById('join-section').style.display = m==='join' ? 'block' : 'none';
+    document.getElementById('init-section').style.display = m==='init' ? 'block' : 'none';
+    document.getElementById('tab-join').className = m==='join' ? 'active' : '';
+    document.getElementById('tab-init').className = m==='init' ? 'active' : '';
+}
+
+function checkAdminUI() {
+    document.getElementById('team-selector-wrapper').style.display =
+        document.getElementById('input-l-role').value === 'admin' ? 'none' : 'block';
+}
+
+function liveFetchTeams() {
+    let id = document.getElementById('input-l-id').value.toUpperCase();
+    if (id.length >= 4) {
+        rdb.ref('bpl_v32/' + id + '/teams').once('value', snap => {
+            let teams = snap.val() || {};
+            let h = "", adminH = "";
+            Object.keys(teams).forEach(t => {
+                h += `<option value="${t}">${t}</option>`;
+                adminH += `<option value="${t}">${t}</option>`;
+            });
+            document.getElementById('input-l-team').innerHTML = h || "<option>No Teams Found</option>";
+            populateAdminDropdowns(adminH);
+        });
+    }
+}
+
+function populateAdminDropdowns(adminH) {
+    document.getElementById('adm-modify-team-list').innerHTML = adminH;
+    document.getElementById('adm-trade-seller').innerHTML = "<option value=''>Seller</option>" + adminH;
+    document.getElementById('adm-trade-buyer').innerHTML = "<option value=''>Buyer</option>" + adminH;
+}
+
+function createNewLeague() {
+    let id = document.getElementById('create-i-id').value.toUpperCase().trim();
+    let pass = document.getElementById('create-i-pass').value;
+    if (!id || !pass) return alert("League ID aur password dono bhariye!");
+    rdb.ref('bpl_v32/' + id + '/config').set({ adminPass: pass }).then(() => {
+        alert("League Created: " + id);
+        switchAuth('join');
+        document.getElementById('input-l-id').value = id;
+    });
+}
+
+function attemptLogin() {
+    GLOBAL_LID = document.getElementById('input-l-id').value.toUpperCase().trim();
+    GLOBAL_ROLE = document.getElementById('input-l-role').value;
+    let pass = document.getElementById('input-l-pass').value;
+    GLOBAL_MYNAME = (GLOBAL_ROLE === 'admin') ? 'ADMIN' : document.getElementById('input-l-team').value;
+    if (!GLOBAL_LID) return alert("League ID enter karein!");
+    DB_REF = rdb.ref('bpl_v32/' + GLOBAL_LID);
+    DB_REF.child('config').once('value', snap => {
+        let conf = snap.val();
+        if (!conf) return alert("League not found!");
+        if (GLOBAL_ROLE === 'admin' && pass !== conf.adminPass) return alert("Galat password!");
+        startFullEngine();
+    });
+}
+
+/* =========================================
+   ENGINE
+   ========================================= */
+function startFullEngine() {
+    document.getElementById('auth-screen').style.display = 'none';
+    document.getElementById('app-container').style.display = 'flex';
+    setTimeout(() => document.getElementById('app-container').classList.add('show'), 100);
+    if (GLOBAL_ROLE === 'admin') {
+        document.getElementById('admin-header').style.display = 'flex';
+        liveFetchTeams();
+    }
+    DB_REF.child('teams').on('value', snap => {
+        TEAMS_CACHE = snap.val() || {};
+        renderFranchises();
+        syncTradeList();
+        if (GLOBAL_ROLE === 'admin') {
+            let adminH = Object.keys(TEAMS_CACHE).map(t => `<option value="${t}">${t}</option>`).join('');
+            populateAdminDropdowns(adminH);
+        }
+    });
+    DB_REF.child('live').on('value', snap => { if (snap.val()) updateAuctionView(snap.val()); });
+    DB_REF.child('chats').limitToLast(30).on('child_added', snap => {
+        let m = snap.val();
+        if (m.timestamp <= LAST_SYNC) return;
+        appendMsg(m);
+        CHAT_HISTORY.push(`${m.u}: ${m.t}`);
+        if (CHAT_HISTORY.length > 20) CHAT_HISTORY.shift();
+    });
+    appendMsg({ u: 'SYSTEM', t: `Welcome ${GLOBAL_MYNAME}! Connected as ${GLOBAL_ROLE === 'admin' ? 'ADMIN' : 'Team Rep'}. Backend: Java Spring Boot ☕`, timestamp: Date.now() });
+    appendMsg({ u: 'MAHAGURU AI', t: 'Namaste! Main Mahaguru AI hoon — Java-powered Claude! Auction strategy ke liye @claude tag karo. 🏏☕', timestamp: Date.now() });
+}
+
+function switchTab(panelId, btn) {
+    ['panel-teams', 'panel-stage', 'panel-chat'].forEach(id => document.getElementById(id).classList.remove('active-tab'));
+    document.getElementById(panelId).classList.add('active-tab');
+    document.querySelectorAll('#mobile-tabs button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+}
+
+function renderFranchises() {
+    let h = "";
+    Object.keys(TEAMS_CACHE).sort().forEach(t => {
+        let count = TEAMS_CACHE[t].squad ? Object.keys(TEAMS_CACHE[t].squad).length : 0;
+        let purse = (TEAMS_CACHE[t].purse || 0).toFixed(2);
+        h += `<div class="team-row" onclick="openSquadModal('${t}')">
+            <div><div class="team-name">${t}</div><div class="team-sub">PLAYERS: ${count} &nbsp;|&nbsp; Click to view squad</div></div>
+            <div class="team-purse">₹${purse} Cr</div>
+        </div>`;
+    });
+    document.getElementById('team-list-render').innerHTML = h || `<div style="padding:20px;color:#555;text-align:center;">No teams yet</div>`;
+}
+
+function openSquadModal(team) {
+    document.getElementById('modal-team-name').innerText = team + ' — Squad';
+    let squad = (TEAMS_CACHE[team] && TEAMS_CACHE[team].squad) ? TEAMS_CACHE[team].squad : {};
+    let h = "";
+    Object.keys(squad).forEach(p => {
+        h += `<div style="padding:12px 0; border-bottom:1px solid #333; display:flex; justify-content:space-between;">
+            <span style="font-weight:700;">${p}</span><span style="color:var(--success-green);">₹${squad[p]} Cr</span></div>`;
+    });
+    document.getElementById('modal-player-list').innerHTML = h || `<div style="color:#555;text-align:center;padding:20px;">No players yet</div>`;
+    document.getElementById('squad-modal').style.display = 'flex';
+}
+
+function updateAuctionView(d) {
+    document.getElementById('player-name-main').innerText = d.pName || '-';
+    document.getElementById('current-bid-value').innerText = `₹${(d.price || 0).toFixed(2)} Cr`;
+    document.getElementById('bidder-info').innerText = 'Bidder: ' + (d.bidder || '-');
+    document.getElementById('timer-display').innerText = d.time || 0;
+    const btn = document.getElementById('master-bid-btn');
+    btn.disabled = (d.status !== 'active' || d.bidder === GLOBAL_MYNAME || GLOBAL_ROLE === 'admin');
+    document.getElementById('timer-display').style.color = (d.time <= 5) ? '#FF0000' : 'var(--danger-red)';
+}
+
+function executeBid() {
+    if (!DB_REF) return;
+    DB_REF.child('live').once('value', snap => {
+        let d = snap.val();
+        if (!d || d.status !== 'active') return;
+        let next = parseFloat((d.price + (d.price < 10 ? 0.5 : 1.0)).toFixed(2));
+        let myPurse = TEAMS_CACHE[GLOBAL_MYNAME] ? TEAMS_CACHE[GLOBAL_MYNAME].purse : 0;
+        if (myPurse >= next) {
+            DB_REF.child('live').update({ price: next, bidder: GLOBAL_MYNAME, time: 15 });
+        } else {
+            alert("Purse mein itna paisa nahi hai!");
+        }
+    });
+}
+
+/* =========================================
+   CLAUDE AI — VIA JAVA SPRING BOOT BACKEND
+   /api/ai/chat endpoint use karo
+   ========================================= */
+async function callClaudeAI(query) {
+    const stream = document.getElementById('chat-stream');
+    const typingDiv = document.createElement('div');
+    typingDiv.className = 'ai-typing m-mahaguru message-bubble';
+    typingDiv.id = 'ai-typing';
+    typingDiv.innerHTML = '<span></span><span></span><span></span>';
+    stream.appendChild(typingDiv);
+    stream.scrollTop = stream.scrollHeight;
+
+    const context = CHAT_HISTORY.slice(-10).join(" | ");
+    let auctionContext = "";
+    if (Object.keys(TEAMS_CACHE).length > 0) {
+        auctionContext = "Current teams and purses: " +
+            Object.keys(TEAMS_CACHE).map(t =>
+                `${t}: ₹${(TEAMS_CACHE[t].purse||0).toFixed(1)}Cr, ${Object.keys(TEAMS_CACHE[t].squad||{}).length} players`
+            ).join(", ");
+    }
+
+    try {
+        // *** KEY DIFFERENCE: Java backend pe call kar rahe hain ***
+        const res = await fetch(`${API_BASE}/api/ai/chat`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                query: query,
+                teamName: GLOBAL_MYNAME,
+                role: GLOBAL_ROLE,
+                chatHistory: context,
+                auctionContext: auctionContext
+            })
+        });
+
+        const data = await res.json();
+        const typing = document.getElementById('ai-typing');
+        if (typing) typing.remove();
+
+        const reply = data.reply || "Koi response nahi mila!";
+        if (DB_REF) {
+            DB_REF.child('chats').push({ u: 'MAHAGURU AI', t: reply, timestamp: Date.now() });
+        } else {
+            appendMsg({ u: 'MAHAGURU AI', t: reply, timestamp: Date.now() });
+        }
+
+    } catch (e) {
+        const typing = document.getElementById('ai-typing');
+        if (typing) typing.remove();
+        console.error("Backend AI error:", e);
+        appendMsg({ u: 'MAHAGURU AI', t: "Java backend se connect nahi hua. Server chal raha hai? 🔄", timestamp: Date.now() });
+    }
+}
+
+function dispatchChat() {
+    let f = document.getElementById('chat-input-field');
+    let v = f.value.trim();
+    if (!v) return;
+    if (DB_REF) {
+        DB_REF.child('chats').push({ u: GLOBAL_MYNAME, t: v, timestamp: Date.now() });
+    } else {
+        appendMsg({ u: GLOBAL_MYNAME || 'YOU', t: v, timestamp: Date.now() });
+    }
+    if (v.toLowerCase().includes('@claude') || v.toLowerCase().includes('@gemini') || v.toLowerCase().includes('@ai')) {
+        let query = v.replace(/@claude|@gemini|@ai/gi, '').trim();
+        callClaudeAI(query || v);
+    }
+    f.value = "";
+}
+
+function appendMsg(m) {
+    let s = document.getElementById('chat-stream');
+    let d = document.createElement('div');
+    const isAI = m.u === 'MAHAGURU AI' || m.u === 'GEMINI AI';
+    d.className = `message-bubble ${isAI ? 'm-mahaguru' : (m.u === 'SYSTEM' ? 'm-system' : 'm-user')}`;
+    d.innerHTML = `<small style="display:block; font-size:9px; opacity:0.7; margin-bottom:4px;">${m.u}</small>${m.t}`;
+    s.appendChild(d);
+    s.scrollTop = s.scrollHeight;
+}
+
+/* =========================================
+   VOICE SYSTEM — WebRTC + Firebase Signaling
+   ========================================= */
+let localStream=null, peerConnections={}, voiceRef=null, myPeerId=null, micMuted=false;
+let audioContext=null, analyserNode=null, volAnimFrame=null;
+const ICE_SERVERS = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' },{ urls: 'stun:stun1.l.google.com:19302' }] };
+
+async function initVoiceSystem() {
+    if (!GLOBAL_LID) { alert("Pehle league mein login karo!"); return; }
+    document.getElementById('voice-panel').classList.add('active');
+    setVoiceStatus("🎤 Microphone access maang rahe hain...");
+    try { localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false }); }
+    catch (e) { setVoiceStatus("❌ Mic access denied."); return; }
+    myPeerId = GLOBAL_MYNAME + "_" + Math.random().toString(36).substr(2, 6);
+    voiceRef = rdb.ref('bpl_v32/' + GLOBAL_LID + '/voice');
+    setVoiceStatus("✅ Voice room join ho raha hai...");
+    updateVoiceTriggerBtn(true);
+    startVolumeVisualizer();
+    const myRef = voiceRef.child('peers/' + myPeerId);
+    myRef.set({ name: GLOBAL_MYNAME, joined: Date.now() });
+    myRef.onDisconnect().remove();
+    voiceRef.child('peers').on('child_added', async snap => {
+        const peerId = snap.key;
+        if (peerId === myPeerId) return;
+        addPeerBadge(peerId, snap.val().name);
+        await createOffer(peerId);
+    });
+    voiceRef.child('peers').on('child_removed', snap => removePeer(snap.key));
+    voiceRef.child('signals/' + myPeerId).on('child_added', async snap => {
+        const sig = snap.val(); snap.ref.remove();
+        if (sig.type === 'offer') await handleOffer(sig.from, sig.sdp, sig.name);
+        else if (sig.type === 'answer') await handleAnswer(sig.from, sig.sdp);
+        else if (sig.type === 'ice') await handleIceCandidate(sig.from, sig.candidate);
+    });
+}
+
+async function createOffer(peerId) {
+    const pc = createPeerConnection(peerId);
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    sendSignal(peerId, { type: 'offer', sdp: offer.sdp, from: myPeerId, name: GLOBAL_MYNAME });
+}
+async function handleOffer(fromId, sdpStr, peerName) {
+    if (!peerConnections[fromId]) addPeerBadge(fromId, peerName || fromId.split('_')[0]);
+    const pc = peerConnections[fromId] || createPeerConnection(fromId);
+    await pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: sdpStr }));
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+    sendSignal(fromId, { type: 'answer', sdp: answer.sdp, from: myPeerId });
+}
+async function handleAnswer(fromId, sdpStr) {
+    const pc = peerConnections[fromId];
+    if (pc && pc.signalingState === 'have-local-offer') await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: sdpStr }));
+}
+async function handleIceCandidate(fromId, candidateStr) {
+    const pc = peerConnections[fromId];
+    if (!pc || !candidateStr) return;
+    try { await pc.addIceCandidate(new RTCIceCandidate(JSON.parse(candidateStr))); } catch(e) {}
+}
+function createPeerConnection(peerId) {
+    if (peerConnections[peerId]) return peerConnections[peerId];
+    const pc = new RTCPeerConnection(ICE_SERVERS);
+    peerConnections[peerId] = pc;
+    if (localStream) localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+    pc.onicecandidate = e => { if (e.candidate) sendSignal(peerId, { type: 'ice', candidate: JSON.stringify(e.candidate), from: myPeerId }); };
+    pc.ontrack = e => { const audio = document.createElement('audio'); audio.autoplay = true; audio.srcObject = e.streams[0]; audio.id = 'audio_' + peerId; document.getElementById('remote-audio-container').appendChild(audio); };
+    pc.onconnectionstatechange = () => {
+        if (pc.connectionState === 'connected') { const b = document.querySelector(`[data-peer="${peerId}"]`); if (b) b.classList.add('speaking'); updatePeerCount(); }
+        else if (['disconnected','failed','closed'].includes(pc.connectionState)) removePeer(peerId);
+    };
+    return pc;
+}
+function sendSignal(toPeerId, data) { if (voiceRef) voiceRef.child('signals/' + toPeerId).push(data); }
+function addPeerBadge(peerId, name) {
+    if (document.querySelector(`[data-peer="${peerId}"]`)) return;
+    const badge = document.createElement('div');
+    badge.className = 'peer-badge'; badge.dataset.peer = peerId;
+    badge.innerHTML = `<div class="dot"></div><span>${name}</span>`;
+    document.getElementById('voice-peers').appendChild(badge);
+    updatePeerCount();
+}
+function removePeer(peerId) {
+    if (peerConnections[peerId]) { peerConnections[peerId].close(); delete peerConnections[peerId]; }
+    const audio = document.getElementById('audio_' + peerId); if (audio) audio.remove();
+    const badge = document.querySelector(`[data-peer="${peerId}"]`); if (badge) badge.remove();
+    updatePeerCount();
+}
+function updatePeerCount() { setVoiceStatus(Object.keys(peerConnections).length > 0 ? `🟢 ${Object.keys(peerConnections).length + 1} log connected` : "🟡 Akele hain — wait karo"); }
+function setVoiceStatus(msg) { const el = document.getElementById('voice-status'); if (el) el.textContent = msg; }
+function toggleMic() {
+    if (!localStream) return; micMuted = !micMuted;
+    localStream.getAudioTracks().forEach(t => t.enabled = !micMuted);
+    const m = document.getElementById('btn-mute'), h = document.getElementById('mic-btn');
+    if (m) { m.className = micMuted ? 'muted' : ''; m.textContent = micMuted ? '🔇 Unmute' : '🎤 Mute'; }
+    if (h) h.textContent = micMuted ? '🔇' : '🎤';
+}
+function closeVoice() {
+    Object.keys(peerConnections).forEach(id => removePeer(id));
+    if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
+    if (voiceRef && myPeerId) { voiceRef.child('peers/' + myPeerId).remove(); voiceRef.child('signals/' + myPeerId).remove(); voiceRef.off(); voiceRef = null; }
+    micMuted = false; myPeerId = null;
+    document.getElementById('voice-panel').classList.remove('active');
+    document.getElementById('voice-peers').innerHTML = '';
+    document.getElementById('remote-audio-container').innerHTML = '';
+    updateVoiceTriggerBtn(false); stopVolumeVisualizer();
+}
+function updateVoiceTriggerBtn(live) {
+    const btn = document.getElementById('voice-trigger-btn'); if (!btn) return;
+    btn.style.background = live ? '#00FF88' : 'var(--primary)'; btn.style.color = '#000';
+    btn.innerText = live ? '🎙 LIVE' : '🎙 JOIN MIC';
+}
+function startVolumeVisualizer() {
+    if (!localStream) return;
+    try { audioContext = new (window.AudioContext || window.webkitAudioContext)(); const src = audioContext.createMediaStreamSource(localStream); analyserNode = audioContext.createAnalyser(); analyserNode.fftSize = 32; src.connect(analyserNode); animateVolume(); } catch(e) {}
+}
+function animateVolume() {
+    if (!analyserNode) return;
+    const bars = document.querySelectorAll('#vol-indicator span'), data = new Uint8Array(analyserNode.frequencyBinCount);
+    analyserNode.getByteFrequencyData(data);
+    bars.forEach((bar, i) => { bar.style.height = ((data[i*2]||0)/255*22+2) + 'px'; });
+    volAnimFrame = requestAnimationFrame(animateVolume);
+}
+function stopVolumeVisualizer() { if (volAnimFrame) cancelAnimationFrame(volAnimFrame); if (audioContext) { audioContext.close(); audioContext = null; } analyserNode = null; }
+
+/* =========================================
+   ADMIN FUNCTIONS
+   ========================================= */
+function adminAddTeam() {
+    let n = document.getElementById('adm-team-n').value.trim();
+    if (!n) return alert("Team name daaliye!");
+    if (TEAMS_CACHE[n]) return alert("Ye team pehle se exist karti hai!");
+    DB_REF.child('teams/' + n).set({ purse: 100.0, squad: {} }).then(() => { document.getElementById('adm-team-n').value = ''; });
+}
+function syncTradeList() {
+    let sid = document.getElementById('adm-trade-seller') ? document.getElementById('adm-trade-seller').value : '';
+    let pd = document.getElementById('adm-trade-player'); if (!pd) return;
+    if (!sid || !TEAMS_CACHE[sid] || !TEAMS_CACHE[sid].squad) { pd.innerHTML = "<option value=''>No Players</option>"; return; }
+    let sq = TEAMS_CACHE[sid].squad;
+    pd.innerHTML = "<option value=''>Select Player</option>" + Object.keys(sq).map(p => `<option value="${p}">${p} (₹${sq[p]}Cr)</option>`).join('');
+}
+function adminExecuteTrade() {
+    let sid = document.getElementById('adm-trade-seller').value, player = document.getElementById('adm-trade-player').value;
+    let bid = document.getElementById('adm-trade-buyer').value, val = parseFloat(document.getElementById('adm-trade-price').value);
+    if (!sid || !player || !bid || isNaN(val)) return alert("Saari trade details bhariye!");
+    if (sid === bid) return alert("Same team mein trade nahi hota!");
+    let bp = TEAMS_CACHE[bid] ? TEAMS_CACHE[bid].purse : 0, sp = TEAMS_CACHE[sid] ? TEAMS_CACHE[sid].purse : 0;
+    if (bp < val) return alert("Buyer ke paas enough purse nahi hai!");
+    DB_REF.child(`teams/${bid}/squad/${player}`).set(val);
+    DB_REF.child(`teams/${sid}/squad/${player}`).remove();
+    DB_REF.child(`teams/${sid}/purse`).set(parseFloat((sp + val).toFixed(2)));
+    DB_REF.child(`teams/${bid}/purse`).set(parseFloat((bp - val).toFixed(2)));
+    DB_REF.child('chats').push({ u: 'SYSTEM', t: `🔄 TRADE: ${player} → ${bid} for ₹${val}Cr`, timestamp: Date.now() });
+    document.getElementById('adm-trade-price').value = '';
+    alert("Trade successful!");
+}
+function adminStartPlayer() {
+    let n = document.getElementById('adm-player-n').value.trim();
+    if (!n) return alert("Player name daaliye!");
+    DB_REF.child('live').set({ pName: n, price: 2.0, bidder: "Base", time: 15, status: 'active' });
+    DB_REF.child('chats').push({ u: 'SYSTEM', t: `🏏 Player UP: ${n} | Base: ₹2 Cr`, timestamp: Date.now() });
+}
+function adminFinish(res) {
+    DB_REF.child('live').once('value', snap => {
+        let d = snap.val(); if (!d) return;
+        if (res === 'sold' && d.bidder !== "Base" && TEAMS_CACHE[d.bidder]) {
+            DB_REF.child(`teams/${d.bidder}/purse`).set(parseFloat((TEAMS_CACHE[d.bidder].purse - d.price).toFixed(2)));
+            DB_REF.child(`teams/${d.bidder}/squad/${d.pName}`).set(d.price);
+            DB_REF.child('chats').push({ u: 'SYSTEM', t: `✅ SOLD: ${d.pName} → ${d.bidder} @ ₹${d.price}Cr`, timestamp: Date.now() });
+        } else if (res === 'unsold') {
+            DB_REF.child('chats').push({ u: 'SYSTEM', t: `❌ UNSOLD: ${d.pName}`, timestamp: Date.now() });
+        }
+        DB_REF.child('live').update({ status: res, time: 0 });
+    });
+}
+function adminUpdatePurse() {
+    let t = document.getElementById('adm-modify-team-list').value, v = parseFloat(document.getElementById('adm-modify-purse-val').value);
+    if (t && !isNaN(v)) { DB_REF.child('teams/' + t + '/purse').set(v); document.getElementById('adm-modify-purse-val').value = ''; }
+}
+function adminCompleteAuction() {
+    if (confirm("Auction band karna chahte ho?"))
+        DB_REF.child('live').set({ pName: "AUCTION CLOSED", status: "closed", time: 0, bidder: "-", price: 0 });
+}
+
+setInterval(() => {
+    if (GLOBAL_ROLE === 'admin' && DB_REF) {
+        DB_REF.child('live').once('value', snap => {
+            let d = snap.val();
+            if (d && d.status === 'active' && d.time > 0) DB_REF.child('live').update({ time: d.time - 1 });
+        });
+    }
+}, 1000);
+</script>
+</body>
+</html>

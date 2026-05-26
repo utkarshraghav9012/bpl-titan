@@ -1,0 +1,64 @@
+# =============================================
+# BPL TITAN — .gitignore
+# =============================================
+
+# SECRETS — KABHI PUSH MAT KARO!
+.env
+*.env
+serviceAccountKey.json
+**/serviceAccountKey.json
+*secret*
+*credentials*
+
+# Java / Maven
+target/
+*.class
+*.jar
+*.war
+*.ear
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+.Python
+venv/
+env/
+.venv/
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# IDEs
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+.classpath
+.project
+.settings/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+logs/
+
+# Node (agar use ho)
+node_modules/
+npm-debug.log
+
+# Compiled assets
+*.min.js
+*.min.css
