@@ -38,7 +38,7 @@ public class AuctionController {
 
     // =============================================
     // CLAUDE AI ENDPOINT
-    // Frontend se @claude mention aane pe yahan call hoga
+    // Called when @claude mention is received from Frontend
     // =============================================
     @PostMapping("/ai/chat")
     public Mono<ResponseEntity<Map<String, String>>> aiChat(@RequestBody AiRequest request) {
@@ -52,19 +52,19 @@ public class AuctionController {
                     return ResponseEntity.ok(response);
                 })
                 .onErrorReturn(ResponseEntity.ok(Map.of(
-                        "reply", "Server error ho gaya! Thodi der baad try karo. 🔄",
+                        "reply", "Server error occurred! Try again after some time. 🔄",
                         "status", "error"
                 )));
     }
 
     // =============================================
-    // FIREBASE CONFIG (frontend ke liye)
-    // API key ko .env se expose karo safely
+    // FIREBASE CONFIG (for Frontend)
+    // Expose Firebase config safely from .env
     // =============================================
     @GetMapping("/config")
     public ResponseEntity<Map<String, String>> getPublicConfig() {
-        // Sirf public/safe config return karo
-        // KABHI BHAI anthropic.api-key yahan mat daalo!
+        // Return only public/safe configuration
+        // NEVER expose anthropic.api-key here!
         Map<String, String> config = new HashMap<>();
         config.put("firebaseApiKey", "AIzaSyC9IwhU6SKApi6ads_FC_3WpD4E0r3k-dQ");
         config.put("firebaseDatabaseUrl", "https://ipl-auction-8b916-default-rtdb.firebaseio.com/");
