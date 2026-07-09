@@ -1,9 +1,8 @@
 """
 BPL TITAN — Python Flask AI Proxy Server
 =========================================
-Ye server Claude AI ke liye proxy ka kaam karta hai.
-Java Spring Boot se independent run kar sakte ho,
-ya dono saath mein bhi chal sakte hain.
+This server acts as a proxy for Claude AI integration.
+Can run independently from Java Spring Boot or together with it.
 
 Usage:
   pip install flask flask-cors requests python-dotenv
@@ -17,7 +16,7 @@ import os
 import logging
 from dotenv import load_dotenv
 
-# Load environment variables (.env file se)
+# Load environment variables from .env file
 load_dotenv()
 
 # =============================================
@@ -46,7 +45,7 @@ PORT = int(os.getenv("PORT", 5000))
 # HELPER: System Prompt Builder
 # =============================================
 def build_system_prompt(team_name: str, role: str, auction_context: str) -> str:
-    """Mahaguru AI ka personality aur context define karo"""
+    """Define Mahaguru AI personality and context"""
     identity = f"{team_name or 'Unknown'} ({role or 'team'})"
     ctx = auction_context or "Auction not started yet"
 
@@ -66,10 +65,10 @@ My team/role: {identity}"""
 # HELPER: Call Claude API
 # =============================================
 def call_claude(query: str, system_prompt: str, chat_history: str = "") -> str:
-    """Claude API ko call karo aur text response return karo"""
+    """Call Claude API and return text response"""
 
     if not ANTHROPIC_API_KEY or ANTHROPIC_API_KEY == "YOUR_API_KEY_HERE":
-        return "API key configure nahi hua bhai! .env mein ANTHROPIC_API_KEY set karo. 🔑"
+        return "API key not configured! Set ANTHROPIC_API_KEY in .env file. 🔑"
 
     headers = {
         "Content-Type": "application/json",
@@ -77,10 +76,10 @@ def call_claude(query: str, system_prompt: str, chat_history: str = "") -> str:
         "anthropic-version": "2023-06-01"
     }
 
-    # Messages list banao
+    # Build messages list
     messages = []
 
-    # Chat history context add karo
+    # Add chat history context if available
     if chat_history:
         messages.append({
             "role": "user",
@@ -91,7 +90,7 @@ def call_claude(query: str, system_prompt: str, chat_history: str = "") -> str:
             "content": "Got it, I'm up to speed."
         })
 
-    # Main query
+    # Add main query
     messages.append({
         "role": "user",
         "content": query
@@ -113,28 +112,28 @@ def call_claude(query: str, system_prompt: str, chat_history: str = "") -> str:
         )
         data = response.json()
 
-        # Error check
+        # Check for errors
         if "error" in data:
             err_msg = data["error"].get("message", "Unknown error")
             log.error(f"Claude API error: {err_msg}")
             return f"AI Error: {err_msg}"
 
-        # Extract text
+        # Extract text response
         content = data.get("content", [])
         if content and len(content) > 0:
-            return content[0].get("text", "Koi response nahi mila!")
+            return content[0].get("text", "No response received!")
 
-        return "Claude se koi response nahi aaya. 🤔"
+        return "No response from Claude. 🤔"
 
     except requests.exceptions.Timeout:
         log.error("Claude API request timed out")
-        return "Request timeout ho gaya! Thodi der baad try karo. ⏱️"
+        return "Request timeout! Try again after some time. ⏱️"
     except requests.exceptions.ConnectionError:
         log.error("Cannot connect to Claude API")
-        return "Network error — Claude se connect nahi hua. Internet check karo! 🔄"
+        return "Network error - Failed to connect to Claude. Check internet connection! 🔄"
     except Exception as e:
         log.error(f"Unexpected error calling Claude: {e}")
-        return "Kuch gadbad ho gaya! Try again karo. 🔄"
+        return "Something went wrong! Try again. 🔄"
 
 
 # =============================================
@@ -143,7 +142,7 @@ def call_claude(query: str, system_prompt: str, chat_history: str = "") -> str:
 
 @app.route("/")
 def index():
-    """Serve frontend (agar static folder mein hai)"""
+    """Serve frontend (if available in static folder)"""
     return app.send_static_file("index.html")
 
 
@@ -161,8 +160,8 @@ def health():
 @app.route("/api/ai/chat", methods=["POST"])
 def ai_chat():
     """
-    Main AI endpoint — Java Spring Boot wala same interface
-    Frontend yahan call karta hai jab @claude tag milta hai
+    Main AI endpoint - Compatible with Java Spring Boot interface
+    Frontend calls this endpoint when @claude tag is mentioned
     """
     try:
         data = request.get_json()
@@ -176,7 +175,7 @@ def ai_chat():
         auction_ctx   = data.get("auctionContext", "")
 
         if not query:
-            return jsonify({"reply": "Query empty hai bhai!", "status": "error"}), 400
+            return jsonify({"reply": "Query is empty!", "status": "error"}), 400
 
         log.info(f"AI request from {team_name} ({role}): {query[:50]}...")
 
@@ -191,14 +190,14 @@ def ai_chat():
     except Exception as e:
         log.error(f"Error in /api/ai/chat: {e}")
         return jsonify({
-            "reply": "Server error ho gaya! Thodi der baad try karo. 🔄",
+            "reply": "Server error occurred! Try again after some time. 🔄",
             "status": "error"
         }), 500
 
 
 @app.route("/api/config", methods=["GET"])
 def get_config():
-    """Public Firebase config return karo (Anthropic key kabhi nahi!)"""
+    """Return public Firebase config (Anthropic key is never exposed)"""
     return jsonify({
         "firebaseApiKey": "AIzaSyC9IwhU6SKApi6ads_FC_3WpD4E0r3k-dQ",
         "firebaseDatabaseUrl": "https://ipl-auction-8b916-default-rtdb.firebaseio.com/",
@@ -232,7 +231,7 @@ if __name__ == "__main__":
 
     if ANTHROPIC_API_KEY == "YOUR_API_KEY_HERE":
         print("\n⚠️  WARNING: ANTHROPIC_API_KEY not set!")
-        print("   .env file mein ANTHROPIC_API_KEY=your_key_here add karo\n")
+        print("   Add ANTHROPIC_API_KEY=your_key_here to .env file\n")
 
     app.run(
         host="0.0.0.0",
